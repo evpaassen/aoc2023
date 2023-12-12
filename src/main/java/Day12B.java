@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Day12B {
@@ -12,30 +13,43 @@ public class Day12B {
     public record Line(char[] springs, List<Integer> damagedGroups) {
 
         public long possibleArrangements() {
-            List<String> possibilities = List.of("");
+            List<List<Boolean>> possibilities = new ArrayList<>();
+            possibilities.add(new ArrayList<>(springs.length));
 
             for (int i = 0; i < springs.length; i++) {
                 char status = springs[i];
                 if (status == UNKNOWN) {
-                    possibilities = possibilities.stream()
-                            .flatMap(s -> Stream.of(s + OPERATIONAL, s + DAMAGED))
-                            .toList();
+                    int jMax = possibilities.size();
+                    for (int j = 0; j < jMax; j++) {
+                        List<Boolean> p = possibilities.get(j);
+
+                        ArrayList<Boolean> tmp = new ArrayList<>(springs.length);
+                        tmp.addAll(p);
+                        tmp.add(true);
+                        possibilities.add(tmp);
+
+                        p.add(false);
+                    }
                 } else {
-                    possibilities = possibilities.stream().map(s -> s + status).toList();
+                    for (List<Boolean> p : possibilities) {
+                        p.add(status == DAMAGED);
+                    }
                 }
             }
 
-            return possibilities.stream().map(String::toCharArray).filter(this::isValid).count();
+            return possibilities.stream().filter(this::isValid).count();
         }
 
-        public boolean isValid(char[] springs) {
+        public boolean isValid(List<Boolean> damagedSprings) {
             ArrayDeque<Integer> expectedGroups = new ArrayDeque<>(damagedGroups);
 
             int damagedGroup = 0;
             for (int i = 0; i < springs.length; i++) {
-                if (springs[i] == DAMAGED) {
+                if (damagedSprings.get(i)) {
+                    // Damaged
                     damagedGroup++;
-                } else if (springs[i] == OPERATIONAL) {
+                } else {
+                    // Operational
                     if (damagedGroup > 0) {
                         try {
                             Integer expected = expectedGroups.removeFirst();
